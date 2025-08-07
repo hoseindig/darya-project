@@ -1,6 +1,6 @@
 <template>
   <q-page class="q-pa-md">
-    <!-- <connection-status /> -->
+    <connection-status />
     <q-list bordered class="q-mt-md">
       <q-item v-for="(price, symbol) in prices" :key="symbol">
         <q-item-section>{{ symbol }}</q-item-section>
@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { usePriceStore } from 'stores/usePriceStore';
-// import ConnectionStatus from 'components/ConnectionStatus.vue';
+import ConnectionStatus from 'components/ConnectionStatus.vue';
 import { ref } from 'vue';
 import { CryptoService, type CryptoData } from '../services/apiService';
 

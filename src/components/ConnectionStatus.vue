@@ -1,19 +1,24 @@
+<!-- src/components/ConnectionStatus.vue -->
+<script setup lang="ts">
+import { ref } from 'vue';
+
+const isOnline = ref(navigator.onLine);
+
+window.addEventListener('online', () => (isOnline.value = true));
+window.addEventListener('offline', () => (isOnline.value = false));
+</script>
+
 <template>
-  <q-banner :color="color" dense class="text-white text-center">
-    Connection Status: {{ status }}
-  </q-banner>
+  <div :class="{ 'text-green': isOnline, 'text-red': !isOnline }">
+    {{ isOnline ? 'Online' : 'Offline' }}
+  </div>
 </template>
 
-<script setup lang="ts">
-import { computed } from 'vue';
-import { usePriceStore } from 'stores/usePriceStore';
-
-const store = usePriceStore();
-
-const status = computed(() => store.connectionStatus);
-const color = computed(() => {
-  if (status.value === 'connected') return 'green';
-  if (status.value === 'connecting') return 'orange';
-  return 'red';
-});
-</script>
+<style scoped>
+.text-green {
+  color: green;
+}
+.text-red {
+  color: red;
+}
+</style>
