@@ -22,3 +22,22 @@ export const usePriceStore = defineStore('price', {
     },
   },
 });
+
+// import { defineStore } from 'pinia';
+// import { ref } from 'vue';
+// import type { CryptoData, ExchangeRatesData } from '../services/apiService';
+
+// export const usePriceStore = defineStore('price', () => {
+//   const cryptoData = ref<Record<string, CryptoData>>({});
+//   const exchangeRates = ref<ExchangeRatesData | null>(null);
+
+//   function setCryptoData(data: Record<string, CryptoData>) {
+//     cryptoData.value = data;
+//   }
+
+//   function setExchangeRates(data: ExchangeRatesData) {
+//     exchangeRates.value = data;
+//   }
+
+//   return { cryptoData, exchangeRates, setCryptoData, setExchangeRates };
+// });

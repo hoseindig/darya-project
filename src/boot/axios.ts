@@ -1,4 +1,3 @@
-// src/boot/axios.ts
 import { defineBoot } from '#q-app/wrappers';
 import axios, { type AxiosInstance, type AxiosResponse, type AxiosError } from 'axios';
 import type { App } from 'vue';
@@ -12,19 +11,16 @@ declare module 'vue' {
   }
 }
 
-// Create Axios instances
 const api = axios.create({ baseURL: 'https://api.example.com' });
-const coinMarketCapApi = axios.create({ baseURL: '/api/coinmarketcap' }); // Use proxy path
-const exchangeRatesApi = axios.create({ baseURL: '/api/exchangerates' }); // Use proxy path
+const coinMarketCapApi = axios.create({ baseURL: '/api/coinmarketcap' });
+const exchangeRatesApi = axios.create({ baseURL: '/api/exchangerates' });
 
-// Define a generic interface for API responses
 export interface ApiResponse<T> {
   data: T;
   status: number;
   statusText: string;
 }
 
-// Define interface for CoinMarketCap data
 export interface CryptoData {
   id: number;
   name: string;
@@ -32,11 +28,12 @@ export interface CryptoData {
   quote: {
     USD: {
       price: number;
+      market_cap?: number;
+      volume_24h?: number;
     };
   };
 }
 
-// Define interface for Exchange Rates API data
 export interface ExchangeRatesData {
   success: boolean;
   timestamp: number;
@@ -45,17 +42,15 @@ export interface ExchangeRatesData {
   rates: Record<string, number>;
 }
 
-// Generic CRUD service class
 export class ApiService {
-  private baseEndpoint: string;
-  private axiosInstance: AxiosInstance;
+  protected baseEndpoint: string;
+  protected axiosInstance: AxiosInstance;
 
   constructor(endpoint: string, axiosInstance: AxiosInstance = api) {
     this.baseEndpoint = endpoint;
     this.axiosInstance = axiosInstance;
   }
 
-  // Create: POST request to create a new resource
   async create<T>(data: T): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse<T> = await this.axiosInstance.post(this.baseEndpoint, data);
@@ -69,7 +64,6 @@ export class ApiService {
     }
   }
 
-  // Read: GET request to fetch all resources
   async getAll<T>(params?: Record<string, string | number | boolean>): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse<T> = await this.axiosInstance.get(this.baseEndpoint, {
@@ -85,7 +79,6 @@ export class ApiService {
     }
   }
 
-  // Read: GET request to fetch a single resource by ID
   async getById<T>(id: number | string): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse<T> = await this.axiosInstance.get(`${this.baseEndpoint}/${id}`);
@@ -99,7 +92,6 @@ export class ApiService {
     }
   }
 
-  // Update: PUT request to update an existing resource
   async update<T>(id: number | string, data: Partial<T>): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse<T> = await this.axiosInstance.put(
@@ -116,7 +108,6 @@ export class ApiService {
     }
   }
 
-  // Delete: DELETE request to remove a resource
   async delete(id: number | string): Promise<ApiResponse<void>> {
     try {
       const response: AxiosResponse<void> = await this.axiosInstance.delete(
@@ -132,8 +123,7 @@ export class ApiService {
     }
   }
 
-  // Error handling utility
-  private handleError(error: unknown): Error {
+  protected handleError(error: unknown): Error {
     if (error instanceof Error && 'response' in error) {
       const axiosError = error as AxiosError;
       return new Error(
@@ -149,13 +139,12 @@ export class ApiService {
   }
 }
 
-// Export instances of ApiService for specific resources
 export const UserService = new ApiService('/users');
 export const ProductService = new ApiService('/products');
+// Note: These are base ApiService instances, not used by IndexPage.vue
 export const CryptoService = new ApiService('/v1/cryptocurrency', coinMarketCapApi);
 export const ExchangeRatesService = new ApiService('/v1', exchangeRatesApi);
 
-// Boot function to inject Axios instances into Vue app
 export default defineBoot(({ app }: { app: App }) => {
   app.config.globalProperties.$axios = axios;
   app.config.globalProperties.$api = api;

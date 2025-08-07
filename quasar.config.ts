@@ -77,6 +77,10 @@ export default defineConfig((/* ctx */) => {
       ],
       vueRouterMode: 'history',
       extendViteConf(viteConf) {},
+      env: {
+        VITE_CMC_API_KEY: process.env.VITE_CMC_API_KEY,
+        VITE_EXCHANGE_RATES_API_KEY: process.env.VITE_EXCHANGE_RATES_API_KEY,
+      },
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver

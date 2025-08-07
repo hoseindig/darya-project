@@ -1,75 +1,110 @@
-// 0c1c47f6-d567-4dac-b09d-1da8a7210228
-// src/services/apiService.ts
-import { type AxiosInstance, type AxiosResponse, type AxiosError } from 'axios';
+import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import {
   api,
   coinMarketCapApi,
   exchangeRatesApi,
-  type ApiResponse,
-  type CryptoData,
-  type ExchangeRatesData,
+  // type ApiResponse,
+  // type CryptoData,
+  // type ExchangeRatesData,
+  ApiService as BaseApiService,
 } from '../boot/axios';
 
-export * from '../boot/axios'; // Export CryptoData and ExchangeRatesData for use in other files
+export interface ApiResponse<T> {
+  data: T;
+  status: number;
+  statusText: string;
+}
 
-export class ApiService {
-  private baseEndpoint: string;
-  private axiosInstance: AxiosInstance;
+export interface CryptoData {
+  id: number;
+  name: string;
+  symbol: string;
+  quote: {
+    USD: {
+      price: number;
+      market_cap?: number;
+      volume_24h?: number;
+    };
+  };
+}
+
+export interface ExchangeRatesData {
+  success: boolean;
+  timestamp: number;
+  base: string;
+  date: string;
+  rates: Record<string, number>;
+}
+
+export class ExtendedApiService extends BaseApiService {
+  private cache: Map<
+    string,
+    { data: ApiResponse<Record<string, CryptoData> | ExchangeRatesData>; timestamp: number }
+  > = new Map();
+  private readonly CACHE_DURATION = 60 * 1000;
 
   constructor(endpoint: string, axiosInstance: AxiosInstance = api) {
-    this.baseEndpoint = endpoint;
-    this.axiosInstance = axiosInstance;
+    super(endpoint, axiosInstance);
   }
 
-  async getListings(
-    params?: Record<string, string | number | boolean>,
-  ): Promise<ApiResponse<CryptoData[]>> {
+  async getCryptoQuotes(symbols: string[]): Promise<ApiResponse<Record<string, CryptoData>>> {
+    const cacheKey = `crypto-quotes-${symbols.join(',')}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.data as ApiResponse<Record<string, CryptoData>>;
+    }
+
     try {
-      const response: AxiosResponse<CryptoData[]> = await this.axiosInstance.get(
-        `${this.baseEndpoint}/listings/latest`,
-        {
+      const response: AxiosResponse<{ data: Record<string, CryptoData> }> =
+        await this.axiosInstance.get(`${this.baseEndpoint}/quotes/latest`, {
           headers: {
-            'X-CMC_PRO_API_KEY': 'b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c', // Your provided CoinMarketCap API key
+            'X-CMC_PRO_API_KEY': import.meta.env.VITE_CMC_API_KEY,
           },
-          params,
-        },
-      );
-      return {
-        data: response.data,
+          params: { symbol: symbols.join(',') },
+        });
+      const result = {
+        data: response.data.data,
         status: response.status,
         statusText: response.statusText,
       };
+      this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+      return result;
     } catch (error: unknown) {
       throw this.handleError(error);
     }
   }
 
-  async getExchangeRates(
-    params?: Record<string, string | number | boolean>,
-  ): Promise<ApiResponse<ExchangeRatesData>> {
+  async getExchangeRates(symbols?: string[]): Promise<ApiResponse<ExchangeRatesData>> {
+    const cacheKey = `exchange-rates-${symbols?.join(',') || 'all'}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.data as ApiResponse<ExchangeRatesData>;
+    }
+
     try {
       const response: AxiosResponse<ExchangeRatesData> = await this.axiosInstance.get(
         `${this.baseEndpoint}/latest`,
         {
           params: {
-            access_key: '7845a621855c3c0ef62a8707e3c0db53', // Your provided Exchange Rates API key
+            access_key: import.meta.env.VITE_EXCHANGE_RATES_API_KEY,
+            symbols: symbols?.join(','),
             format: 1,
-            ...params,
           },
         },
       );
-      return {
+      const result = {
         data: response.data,
         status: response.status,
         statusText: response.statusText,
       };
+      this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+      return result;
     } catch (error: unknown) {
       throw this.handleError(error);
     }
   }
 
-  // Error handling utility
-  private handleError(error: unknown): Error {
+  protected override handleError(error: unknown): Error {
     if (error instanceof Error && 'response' in error) {
       const axiosError = error as AxiosError;
       return new Error(
@@ -85,6 +120,5 @@ export class ApiService {
   }
 }
 
-// Export instances for services
-export const CryptoService = new ApiService('/v1/cryptocurrency', coinMarketCapApi);
-export const ExchangeRatesService = new ApiService('/v1', exchangeRatesApi);
+export const CryptoService = new ExtendedApiService('/v1/cryptocurrency', coinMarketCapApi);
+export const ExchangeRatesService = new ExtendedApiService('/v1', exchangeRatesApi);
