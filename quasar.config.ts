@@ -96,6 +96,11 @@ export default defineConfig((/* ctx */) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/coinmarketcap/, ''),
         },
+        '/api/exchangerates': {
+          target: 'https://api.exchangeratesapi.io',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/exchangerates/, ''),
+        },
       },
     },
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

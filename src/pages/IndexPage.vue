@@ -14,11 +14,17 @@
 import { usePriceStore } from 'stores/usePriceStore';
 import ConnectionStatus from 'components/ConnectionStatus.vue';
 import { ref } from 'vue';
-import { CryptoService, type CryptoData } from '../services/apiService';
+import {
+  CryptoService,
+  ExchangeRatesService,
+  type CryptoData,
+  type ExchangeRatesData,
+} from '../services/apiService';
 
 const store = usePriceStore();
 const prices = store.prices;
-const data = ref<CryptoData[]>([]);
+const cryptoData = ref<CryptoData[]>([]);
+const exchangeRates = ref<ExchangeRatesData | null>(null);
 const error = ref<string | null>(null);
 
 const fetchCryptoListings = async () => {
@@ -26,12 +32,22 @@ const fetchCryptoListings = async () => {
     const response = await CryptoService.getListings({
       limit: 10,
     });
-    data.value = response.data;
+    cryptoData.value = response.data;
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to fetch data';
+    error.value = err instanceof Error ? err.message : 'Failed to fetch crypto data';
   }
 };
 
-// Call the function with proper promise handling
+const fetchExchangeRates = async () => {
+  try {
+    const response = await ExchangeRatesService.getExchangeRates();
+    exchangeRates.value = response.data;
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to fetch exchange rates';
+  }
+};
+
+// Call the functions with proper promise handling
 void fetchCryptoListings();
+void fetchExchangeRates();
 </script>

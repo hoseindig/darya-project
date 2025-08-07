@@ -8,14 +8,14 @@ declare module 'vue' {
     $axios: typeof axios;
     $api: AxiosInstance;
     $coinMarketCapApi: AxiosInstance;
+    $exchangeRatesApi: AxiosInstance;
   }
 }
 
-// Create Axios instance for the main API
+// Create Axios instances
 const api = axios.create({ baseURL: 'https://api.example.com' });
-
-// Separate Axios instance for CoinMarketCap API
 const coinMarketCapApi = axios.create({ baseURL: '/api/coinmarketcap' }); // Use proxy path
+const exchangeRatesApi = axios.create({ baseURL: '/api/exchangerates' }); // Use proxy path
 
 // Define a generic interface for API responses
 export interface ApiResponse<T> {
@@ -34,6 +34,15 @@ export interface CryptoData {
       price: number;
     };
   };
+}
+
+// Define interface for Exchange Rates API data
+export interface ExchangeRatesData {
+  success: boolean;
+  timestamp: number;
+  base: string;
+  date: string;
+  rates: Record<string, number>;
 }
 
 // Generic CRUD service class
@@ -61,9 +70,9 @@ export class ApiService {
   }
 
   // Read: GET request to fetch all resources
-  async getAll<T>(params?: Record<string, string | number | boolean>): Promise<ApiResponse<T[]>> {
+  async getAll<T>(params?: Record<string, string | number | boolean>): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<T[]> = await this.axiosInstance.get(this.baseEndpoint, {
+      const response: AxiosResponse<T> = await this.axiosInstance.get(this.baseEndpoint, {
         params,
       });
       return {
@@ -144,12 +153,14 @@ export class ApiService {
 export const UserService = new ApiService('/users');
 export const ProductService = new ApiService('/products');
 export const CryptoService = new ApiService('/v1/cryptocurrency', coinMarketCapApi);
+export const ExchangeRatesService = new ApiService('/v1', exchangeRatesApi);
 
 // Boot function to inject Axios instances into Vue app
 export default defineBoot(({ app }: { app: App }) => {
   app.config.globalProperties.$axios = axios;
   app.config.globalProperties.$api = api;
   app.config.globalProperties.$coinMarketCapApi = coinMarketCapApi;
+  app.config.globalProperties.$exchangeRatesApi = exchangeRatesApi;
 });
 
-export { api, coinMarketCapApi };
+export { api, coinMarketCapApi, exchangeRatesApi };
