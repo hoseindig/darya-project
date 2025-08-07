@@ -43,7 +43,7 @@ export default defineConfig((/* ctx */) => {
         // extendTsConfig (tsConfig) {}
       },
 
-      vueRouterMode: 'hash', // available values: 'hash', 'history'
+      // vueRouterMode: 'hash', // available values: 'hash', 'history'
       // vueRouterBase,
       // vueDevtools,
       // vueOptionsAPI: false,
@@ -75,14 +75,29 @@ export default defineConfig((/* ctx */) => {
           { server: false },
         ],
       ],
+      vueRouterMode: 'history',
+      extendViteConf(viteConf) {},
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
-    devServer: {
-      // https: true,
-      open: true, // opens browser window automatically
-    },
+    // devServer: {
+    //   // https: true,
+    //   open: true, // opens browser window automatically
+    // },
 
+    devServer: {
+      server: {
+        type: 'http',
+      },
+      port: 9000, // پورت پروژه شما
+      proxy: {
+        '/api/coinmarketcap': {
+          target: 'https://sandbox-api.coinmarketcap.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/coinmarketcap/, ''),
+        },
+      },
+    },
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
       config: {},

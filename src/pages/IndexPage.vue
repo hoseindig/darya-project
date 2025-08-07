@@ -1,6 +1,6 @@
 <template>
   <q-page class="q-pa-md">
-    <connection-status />
+    <!-- <connection-status /> -->
     <q-list bordered class="q-mt-md">
       <q-item v-for="(price, symbol) in prices" :key="symbol">
         <q-item-section>{{ symbol }}</q-item-section>
@@ -12,32 +12,26 @@
 
 <script setup lang="ts">
 import { usePriceStore } from 'stores/usePriceStore';
-import ConnectionStatus from 'components/ConnectionStatus.vue';
-import axios from 'src/boot/axios';
+// import ConnectionStatus from 'components/ConnectionStatus.vue';
+import { ref } from 'vue';
+import { CryptoService, type CryptoData } from '../services/apiService';
 
 const store = usePriceStore();
 const prices = store.prices;
+const data = ref<CryptoData[]>([]);
+const error = ref<string | null>(null);
 
-const testApi =()=>{
-  let response = null;
-new Promise(async (resolve, reject) => {
+const fetchCryptoListings = async () => {
   try {
-    response = await axios.get('https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest', {
-      headers: {
-        'X-CMC_PRO_API_KEY': '0c1c47f6-d567-4dac-b09d-1da8a7210228',
-      },
+    const response = await CryptoService.getListings({
+      limit: 10,
     });
-  } catch(ex) {
-    response = null;
-    // error
-    console.log(ex);
-    reject(ex);
+    data.value = response.data;
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to fetch data';
   }
-  if (response) {
-    // success
-    const json = response.data;
-    console.log(json);
-    resolve(json);
-  }
-}
+};
+
+// Call the function with proper promise handling
+void fetchCryptoListings();
 </script>
