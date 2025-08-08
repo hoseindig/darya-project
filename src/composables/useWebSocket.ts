@@ -1,67 +1,72 @@
 // src/composables/useWebSocket.ts
-import { onUnmounted } from 'vue';
-import { usePriceStore } from 'stores/usePriceStore';
+import { ref, onUnmounted } from 'vue';
+import { usePriceStore } from 'src/stores/usePriceStore';
 
-let socket: WebSocket | null = null;
-let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
-let reconnectAttempts = 0;
-//API Key  access_key 0c1c47f6-d567-4dac-b09d-1da8a7210228
-// X-CMC_PRO_API_KEY
-export function useWebSocket() {
+export function useWebSocket(url: string) {
   const store = usePriceStore();
+  const isConnected = ref(false);
+
+  let socket: WebSocket | null = null;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let pingTimer: ReturnType<typeof setInterval> | null = null;
 
   const connect = () => {
-    store.setConnectionStatus('connecting');
-    socket = new WebSocket('wss://example.com'); // برای تست می‌تونی ws://localhost:3000 بزاری یا mock server بسازی
+    socket = new WebSocket(url);
 
     socket.onopen = () => {
-      store.setConnectionStatus('connected');
-      reconnectAttempts = 0;
-      startHeartbeat();
+      isConnected.value = true;
+      console.log('WebSocket connected:', url);
+
+      // Send ping every 30s
+      pingTimer = setInterval(() => {
+        if (socket?.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 30000);
     };
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      store.updatePrice(data.symbol, data.price);
-    };
-
-    socket.onclose = () => {
-      store.setConnectionStatus('disconnected');
-      stopHeartbeat();
-      retryConnection();
+      try {
+        const data = JSON.parse(event.data);
+        if (data.symbol && data.price) {
+          store.updatePrice(data.symbol, data.price);
+        }
+      } catch {
+        console.warn('Non-JSON message received:', event.data);
+      }
     };
 
     socket.onerror = () => {
-      socket?.close();
+      console.error('WebSocket error');
+    };
+
+    socket.onclose = () => {
+      isConnected.value = false;
+      console.warn('WebSocket disconnected. Reconnecting in 3s...');
+      cleanup();
+      reconnectTimer = setTimeout(connect, 3000);
     };
   };
 
-  const startHeartbeat = () => {
-    heartbeatInterval = setInterval(() => {
-      if (socket?.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'ping' }));
-      }
-    }, 2000);
-  };
-
-  const stopHeartbeat = () => {
-    if (heartbeatInterval !== null) {
-      clearInterval(heartbeatInterval);
-      heartbeatInterval = null;
+  const cleanup = () => {
+    if (pingTimer) {
+      clearInterval(pingTimer);
+      pingTimer = null;
+    }
+    if (socket) {
+      socket.close();
+      socket = null;
     }
   };
 
-  const retryConnection = () => {
-    if (reconnectAttempts >= 5) return;
-    const timeout = Math.pow(2, reconnectAttempts) * 1000;
-    reconnectAttempts++;
-    setTimeout(() => connect(), timeout);
-  };
-
-  connect();
-
   onUnmounted(() => {
-    socket?.close();
-    stopHeartbeat();
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    cleanup();
   });
+
+  // ✅ Return reactive state & actions
+  return {
+    isConnected,
+    connect,
+  };
 }

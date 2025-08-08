@@ -1,16 +1,14 @@
 <!-- src/components/ConnectionStatus.vue -->
 <script setup lang="ts">
-import { ref } from 'vue';
+import { useWebSocket } from 'src/composables/useWebSocket';
 
-const isOnline = ref(navigator.onLine);
-
-window.addEventListener('online', () => (isOnline.value = true));
-window.addEventListener('offline', () => (isOnline.value = false));
+const { isConnected, connect } = useWebSocket('wss://echo.websocket.org');
+connect();
 </script>
 
 <template>
-  <div :class="{ 'text-green': isOnline, 'text-red': !isOnline }">
-    {{ isOnline ? 'Online' : 'Offline' }}
+  <div :class="{ 'text-green': isConnected, 'text-red': !isConnected }">
+    {{ isConnected ? 'Online' : 'Offline' }}
   </div>
 </template>
 
